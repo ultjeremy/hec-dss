@@ -401,18 +401,16 @@ HECDSS_API int hec_dss_tsStoreRegular(dss_file* dss, const char* pathname,
       hec_dss_log_message("Error allocating memory in hec_dss_tsStoreRegular ");
       return -1;
     }
-      
-
     tss = zstructTsNewRegFloats(pathname, values, valueArraySize, startDate, startTime, units, type);
     tss->allocated[zSTRUCT_TS_floatValues];// zstructFree will free float array
-    if (qualityArraySize > 0 && qualityArraySize == valueArraySize)
-      tss->quality = qualityArray;
   }
   else {
     tss = zstructTsNewRegDoubles(pathname, valueArray, valueArraySize, startDate, startTime, units, type);
   }
-  tss->boolPattern = isTsPattern(pathname);
 
+  if (qualityArraySize > 0 && qualityArraySize == valueArraySize) // quality should be set regardless of float or double
+      tss->quality = qualityArray;
+  tss->boolPattern = isTsPattern(pathname);
   tss->timeZoneName = mallocAndCopy(timeZoneName);
   tss->allocated[zSTRUCT_timeZoneName] = 1;
   int status = ztsStore(dss->ifltab, tss, storageFlag);
