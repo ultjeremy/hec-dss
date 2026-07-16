@@ -309,6 +309,7 @@ HECDSS_API int hec_dss_tsRetrieve(dss_file* dss, const char *pathname,
                                   const char *startDate, const char *startTime, 
                                   const char* endDate,   const char *endTime,
                                   int *timeArray, double *valueArray, const int arraySize,
+                                  char* notesBuffer, const int noteSize,
                                   int *numberValuesRead, int *quality, const int qualityWidth,
                                   int* julianBaseDate,int* timeGranularitySeconds,
                                   char* units,const int unitsLength, 
@@ -363,7 +364,21 @@ HECDSS_API int hec_dss_tsRetrieve(dss_file* dss, const char *pathname,
             valueArray[i] = tss->doubleValues[i];
             if (qualityWidth > 0) // TO DO.. quality can have multiple columns
                quality[i] = tss->quality[i];
+            if (noteSize > 0 && tss->cnotes != NULL) {
+              int notePosition = 0;
+              for (int i = 0; i < size; i++) {
+                int remaining = tss->cnotesLengthTotal - notePosition; // Total bytes in tss->cnotes - current position in cnotes
+                if (remaining <= 0) break; // No more notes in buffer
 
+                char* src = &tss->cnotes[notePosition]; // address of beginning of note i
+                int noteLength = (int)strnlen_hec(src, remaining); // length of note i
+
+                // copy note i into slot i of char* notesBuffer, maxing at noteSize
+                stringCopy(notesBuffer + i * noteSize, noteSize, src, noteLength);
+
+                notePosition += noteLength + 1; // step past note i and null terminator
+              }
+            }
         }
     }
 

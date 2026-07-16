@@ -236,6 +236,8 @@ HECDSS_API int hec_dss_dataType(dss_file* dss, const char* pathname);
 /// <param name="timeArray">input/output: array to hold integer representation of date-times</param>
 /// <param name="valueArray">input/output: array to hold double representation of values</param>
 /// <param name="arraySize">input: length of timeArray and valueArray </param>
+/// <param name="notesBuffer">input/output: string buffer to hold all notes strings</param>
+/// <param name="noteSize">input: length of each note </param>
 /// <param name="numberValuesRead">output: number of values returned</param>
 /// <param name="julianBaseDate">base integer </param>
 /// <param name="timeGranularitySeconds"></param>
@@ -251,6 +253,7 @@ HECDSS_API int hec_dss_tsRetrieve(dss_file* dss, const char* pathname,
   const char* startDate, const char* startTime,
   const char* endDate, const char* endTime,
   int* timeArray, double* valueArray, const int arraySize,
+  char* notesBuffer, const int noteSize,
   int* numberValuesRead, int* quality, const int qualityWidth,
   int* julianBaseDate, int* timeGranularitySeconds,
   char* units, const int unitsLength,

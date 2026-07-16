@@ -9,7 +9,7 @@
 	Description
 
 
-	You must not reuse this strut.  Make a new one for every dataset.
+	You must not reuse this struct.  Make a new one for every dataset.
 	Call zstructFree after the storage is complete
 
 	pathname:		The pathname of the data to store or retrieve.  The E part specifies time granularity and interval of data
