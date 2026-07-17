@@ -247,9 +247,9 @@ HECDSS_API int hec_dss_dataType(dss_file *dss, const char *pathname);
 /// <param name="valueArray">input/output: array to hold double representation
 /// of values</param>
 /// <param name="arraySize">input: length of timeArray and valueArray </param>
-/// <param name="notesBuffer">input/output: string buffer to hold all notes
+/// <param name="cnotesBuffer">input/output: string buffer to hold all notes
 /// strings</param>
-/// <param name="noteSize">input: length of each note </param>
+/// <param name="cnoteSize">input: length of each note </param>
 /// <param name="numberValuesRead">output: number of values returned</param>
 /// <param name="julianBaseDate">base integer </param>
 /// <param name="timeGranularitySeconds"></param>
@@ -283,6 +283,9 @@ HECDSS_API int hec_dss_tsRetrieve(
 /// <param name="valueArraySize">number of points</param>
 /// <param name="qualityArray">array of quality flags</param>
 /// <param name="qualityArraySize">number of quality values per point</param>
+/// <param name="cnotesBuffer">input/output: string buffer to hold all notes
+/// strings</param>
+/// <param name="cnoteSize">input: length of each note </param>
 /// <param name="saveAsFloat">set to true to save disk space</param>
 /// <param name="units">units of data</param>
 /// <param name="type">type of data: PER-AVER, PER-CUM,INST-VAL,INST-CUM
@@ -307,9 +310,9 @@ HECDSS_API int hec_dss_tsRetrieve(
 HECDSS_API int hec_dss_tsStoreRegular(
     dss_file *dss, const char *pathname, const char *startDate,
     const char *startTime, double *valueArray, const int valueArraySize,
-    int *qualityArray, const int qualityArraySize, const int saveAsFloat,
-    const char *units, const char *type, const char *timeZoneName,
-    int storageFlag);
+    int *qualityArray, const int qualityArraySize, const char *cnotesBuffer,
+    const int cnoteSize, const int saveAsFloat, const char *units,
+    const char *type, const char *timeZoneName, int storageFlag);
 
 /// <summary>
 /// Stores Irregular interval data to DSS
@@ -319,16 +322,19 @@ HECDSS_API int hec_dss_tsStoreRegular(
 /// <param name="startDateBase">starting base date,  defaults to 01Jan1990 if
 /// empty or null</param>
 /// <param name="times">An integer array of minutes or
-/// seconds that correspond to the date/time for each value</param> <param
-/// name="timeGranularitySeconds">The number of seconds a unit in times
+/// seconds that correspond to the date/time for each value</param>
+/// <param name="timeGranularitySeconds">The number of seconds a unit in times
 /// represents, usually MINUTE_GRANULARITY(60) or SECOND_GRANULARITY(1) </param>
 /// <param name="valueArray">double array containing the data to store.</param>
 /// <param name="valueArraySize">number of values in valueArrary</param>
 /// <param name="qualityArray">The array that contains quality or other
 /// additional information.  A single quality value may be an int or multiple of
-/// an int.  This API only supports single int per quality.</param> <param
-/// name="qualityArraySize">lenght of quality array, should match
+/// an int.  This API only supports single int per quality.</param>
+/// <param name="qualityArraySize">lenght of quality array, should match
 /// valueArraySize</param>
+/// <param name="cnotesBuffer">input/output: string buffer to hold all notes
+/// strings</param>
+/// <param name="cnoteSize">input: length of each note </param>
 /// <param name="saveAsFloat">when true saves to disk, with float(4-bytes)
 /// otherwise uses 8-bytes per value.</param>
 /// <param name="units">units such as 'cfs'</param>
@@ -347,8 +353,9 @@ HECDSS_API int hec_dss_tsStoreIrregular(
     dss_file *dss, const char *pathname, const char *startDateBase, int *times,
     const int timeGranularitySeconds, double *valueArray,
     const int valueArraySize, int *qualityArray, const int qualityArraySize,
-    const int saveAsFloat, const char *units, const char *type,
-    const char *timeZoneName, int storageFlag);
+    const char *cnotesBuffer, const int cnoteSize, const int saveAsFloat,
+    const char *units, const char *type, const char *timeZoneName,
+    int storageFlag);
 
 HECDSS_API int hec_dss_locationRetrieve(
     dss_file *dss, const char *fullPath, double *x, double *y, double *z,
@@ -567,7 +574,8 @@ HECDSS_API int hec_dss_gridRetrieve(
 /// <param name="xCoordOfGridCellZero"></param>
 /// <param name="yCoordOfGridCellZero"></param>
 /// <param name="nullValue"></param>
-/// <param name="maxDataValue"></param> <param name="minDataValue"></param>
+/// <param name="maxDataValue"></param>
+/// <param name="minDataValue"></param>
 /// <param name="meanDataValue"></param>
 /// <param name="rangeLimitTable"></param>
 /// <param name="numberEqualOrExceedingRangeLimit"></param>

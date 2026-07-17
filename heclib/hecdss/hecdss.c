@@ -86,6 +86,48 @@ HECDSS_API int hec_dss_log_message(const char *message) {
 
 HECDSS_API int hec_dss_CONSTANT_MAX_PATH_SIZE() { return MAX_PATHNAME_SIZE; }
 
+char *hec_dss_pack_notes(const char *cnotesBuffer, int cnoteSize,
+                         int numberValues, int *lengthTotal) {
+  *lengthTotal = 0; // This is tss->cnotesLengthTotal
+
+  if (cnotesBuffer == NULL || cnoteSize <= 0 || numberValues <= 0)
+    return NULL;
+
+  int totalCalculatedNotesLength = 0;
+  // This first loop is to determine tss->cnotesLengthTotal, which is how much
+  // we need to malloc for tss->cnotes
+  for (int i = 0; i < numberValues; i++) {
+    // add size of curr string (string i) + 1 for '\0'
+    // the i * cnoteSize allows the loop to jump to the front of each string and
+    // calculate the length of each string individually
+    totalCalculatedNotesLength +=
+        (int)strnlen_hec(cnotesBuffer + (size_t)i * cnoteSize, cnoteSize) + 1;
+  }
+  // malloc exactly how many bytes we need to store the tss->cnotes array. This
+  // is equivalent to tss->cnotesLengthTotal
+  // We need to do all of this because we are moving from a padded, fixed cnotes
+  // sized array to a packed char array with '\0' as the only information to
+  // distinguish between different cnotes
+  char *cnotes = (char *)malloc((size_t)totalCalculatedNotesLength);
+  if (cnotes == NULL)
+    return NULL;
+
+  // current position within the stored packed array we are copying into
+  int pos = 0;
+  for (int i = 0; i < numberValues; i++) {
+    // ptr to start of ith note
+    const char *src = cnotesBuffer + (size_t)i * cnoteSize;
+    int len = (int)strnlen_hec(src, cnoteSize); // length of note i
+    memcpy(cnotes + pos, src, len);
+    pos += len;
+    cnotes[pos++] = '\0'; // move to next note to write
+  }
+
+  // save length of packed, stored array
+  *lengthTotal = totalCalculatedNotesLength;
+  return cnotes;
+}
+
 float *hec_dss_double_array_to_float(double *values, const int size) {
   if (size <= 0 || values == NULL)
     return NULL;
@@ -373,25 +415,24 @@ HECDSS_API int hec_dss_tsRetrieve(
               tss->quality[j + (i * tss->qualityElementSize)];
         }
       }
-      if (cnoteSize > 0 && tss->cnotes != NULL) {
-        int notePosition = 0;
-        for (int i = 0; i < size; i++) {
-          // Total bytes in tss->cnotes - current
-          int remaining = tss->cnotesLengthTotal - notePosition;
-          // position in cnotes
-          if (remaining <= 0)
-            break; // No more notes in buffer
+    }
 
-          char *src =
-              &tss->cnotes[notePosition]; // address of beginning of note i
-          int noteLength = (int)strnlen_hec(src, remaining); // length of note i
+    if (cnoteSize > 0 && tss->cnotes != NULL && cnotesBuffer != NULL) {
+      int notePosition = 0;
+      for (int i = 0; i < size; i++) {
+        // Total bytes in tss->cnotes - current position in cnotes
+        int remaining = tss->cnotesLengthTotal - notePosition;
+        if (remaining <= 0)
+          break; // No more notes in buffer
 
-          // copy note i into slot i of char* notesBuffer, maxing at noteSize
-          stringCopy(cnotesBuffer + i * cnoteSize, cnoteSize, src, noteLength);
+        char *src =
+            &tss->cnotes[notePosition]; // address of beginning of note i
+        int noteLength = (int)strnlen_hec(src, remaining); // length of note i
 
-          notePosition +=
-              noteLength + 1; // step past note i and null terminator
-        }
+        // copy note i into slot i of cnotesBuffer, maxing at cnoteSize
+        stringCopy(cnotesBuffer + i * cnoteSize, cnoteSize, src, noteLength);
+
+        notePosition += noteLength + 1; // step past note i and null terminator
       }
     }
   }
@@ -402,9 +443,9 @@ HECDSS_API int hec_dss_tsRetrieve(
 HECDSS_API int hec_dss_tsStoreRegular(
     dss_file *dss, const char *pathname, const char *startDate,
     const char *startTime, double *valueArray, const int valueArraySize,
-    int *qualityArray, const int qualityArraySize, const int saveAsFloat,
-    const char *units, const char *type, const char *timeZoneName,
-    int storageFlag) {
+    int *qualityArray, const int qualityArraySize, const char *cnotesBuffer,
+    const int cnoteSize, const int saveAsFloat, const char *units,
+    const char *type, const char *timeZoneName, int storageFlag) {
   zStructTimeSeries *tss = 0;
 
   if (saveAsFloat) {
@@ -415,7 +456,8 @@ HECDSS_API int hec_dss_tsStoreRegular(
     }
     tss = zstructTsNewRegFloats(pathname, values, valueArraySize, startDate,
                                 startTime, units, type);
-    tss->allocated[zSTRUCT_TS_floatValues]; // zstructFree will free float array
+    // zstructFree will free float array
+    tss->allocated[zSTRUCT_TS_floatValues] = 1;
   } else {
     tss = zstructTsNewRegDoubles(pathname, valueArray, valueArraySize,
                                  startDate, startTime, units, type);
@@ -428,6 +470,17 @@ HECDSS_API int hec_dss_tsStoreRegular(
     tss->quality = qualityArray;
     tss->qualityElementSize = qualityArraySize / valueArraySize;
   }
+
+  int cnotesLengthTotal = 0;
+  char *cnotes = hec_dss_pack_notes(cnotesBuffer, cnoteSize, valueArraySize,
+                                    &cnotesLengthTotal);
+  if (cnotes != NULL) {
+    tss->cnotes = cnotes;
+    tss->cnotesLengthTotal = cnotesLengthTotal;
+    // indicate that we need to free this new malloc'd cnotes later
+    tss->allocated[zSTRUCT_TS_cnotes] = 1;
+  }
+
   tss->boolPattern = isTsPattern(pathname);
   tss->timeZoneName = mallocAndCopy(timeZoneName);
   tss->allocated[zSTRUCT_timeZoneName] = 1;
@@ -440,22 +493,23 @@ HECDSS_API int hec_dss_tsStoreIrregular(
     dss_file *dss, const char *pathname, const char *startDateBase, int *times,
     const int timeGranularitySeconds, double *valueArray,
     const int valueArraySize, int *qualityArray, const int qualityArraySize,
-    const int saveAsFloat, const char *units, const char *type,
-    const char *timeZoneName, int storageFlag) {
+    const char *cnotesBuffer, const int cnoteSize, const int saveAsFloat,
+    const char *units, const char *type, const char *timeZoneName,
+    int storageFlag) {
   zStructTimeSeries *tss = NULL;
 
   if (saveAsFloat) {
     float *values = hec_dss_double_array_to_float(valueArray, valueArraySize);
     if (values == NULL) {
       hec_dss_log_message(
-          "Error allocating memory in hec_dss_tsStoreIregular ");
+          "Error allocating memory in hec_dss_tsStoreIrregular ");
       return -1;
     }
 
     tss = zstructTsNewIrregFloats(pathname, values, valueArraySize, times,
                                   timeGranularitySeconds, startDateBase, units,
                                   type);
-    tss->allocated[zSTRUCT_TS_floatValues];
+    tss->allocated[zSTRUCT_TS_floatValues] = 1;
   } else {
     tss = zstructTsNewIrregDoubles(pathname, valueArray, valueArraySize, times,
                                    timeGranularitySeconds, startDateBase, units,
@@ -467,6 +521,16 @@ HECDSS_API int hec_dss_tsStoreIrregular(
     // value count, since quality may have multiple columns per value
     tss->quality = qualityArray;
     tss->qualityElementSize = qualityArraySize / valueArraySize;
+  }
+
+  int cnotesLengthTotal = 0;
+  char *cnotes = hec_dss_pack_notes(cnotesBuffer, cnoteSize, valueArraySize,
+                                    &cnotesLengthTotal);
+  if (cnotes != NULL) {
+    tss->cnotes = cnotes;
+    tss->cnotesLengthTotal = cnotesLengthTotal;
+    // indicate that we need to free this new malloc'd cnotes later
+    tss->allocated[zSTRUCT_TS_cnotes] = 1;
   }
 
   tss->boolPattern = isTsPattern(pathname);
