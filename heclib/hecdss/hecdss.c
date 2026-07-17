@@ -357,19 +357,28 @@ HECDSS_API int hec_dss_tsRetrieve(
     int size = MIN(tss->numberValues, arraySize);
     size = MAX(0, size);
     *numberValuesRead = size;
+    // Adding checks to ensure that the retriever and source are on the same
+    // page for quality array dimensions
+    int boolCopyQuality =
+        (qualityWidth > 0 && quality != NULL && tss->quality != NULL &&
+         qualityWidth == tss->qualityElementSize);
     for (int i = 0; i < size; i++) {
       if (tss->times) {
         timeArray[i] = tss->times[i];
       }
       valueArray[i] = tss->doubleValues[i];
-      if (qualityWidth > 0) // TO DO.. quality can have multiple columns
-        quality[i] = tss->quality[i];
+      if (boolCopyQuality) {
+        for (int j = 0; j < qualityWidth; j++) {
+          quality[j + (i * qualityWidth)] =
+              tss->quality[j + (i * tss->qualityElementSize)];
+        }
+      }
       if (noteSize > 0 && tss->cnotes != NULL) {
         int notePosition = 0;
         for (int i = 0; i < size; i++) {
-          int remaining = tss->cnotesLengthTotal -
-                          notePosition; // Total bytes in tss->cnotes - current
-                                        // position in cnotes
+          // Total bytes in tss->cnotes - current
+          int remaining = tss->cnotesLengthTotal - notePosition;
+          // position in cnotes
           if (remaining <= 0)
             break; // No more notes in buffer
 
