@@ -313,8 +313,8 @@ HECDSS_API int hec_dss_tsRetrieveInfo(dss_file *pdss, const char *pathname,
 HECDSS_API int hec_dss_tsRetrieve(
     dss_file *dss, const char *pathname, const char *startDate,
     const char *startTime, const char *endDate, const char *endTime,
-    int *timeArray, double *valueArray, const int arraySize, char *notesBuffer,
-    const int noteSize, int *numberValuesRead, int *quality,
+    int *timeArray, double *valueArray, const int arraySize, char *cnotesBuffer,
+    const int cnoteSize, int *numberValuesRead, int *quality,
     const int qualityWidth, int *julianBaseDate, int *timeGranularitySeconds,
     char *units, const int unitsLength, char *type, const int typeLength,
     char *timeZoneName, const int timeZoneNameLength) {
@@ -373,7 +373,7 @@ HECDSS_API int hec_dss_tsRetrieve(
               tss->quality[j + (i * tss->qualityElementSize)];
         }
       }
-      if (noteSize > 0 && tss->cnotes != NULL) {
+      if (cnoteSize > 0 && tss->cnotes != NULL) {
         int notePosition = 0;
         for (int i = 0; i < size; i++) {
           // Total bytes in tss->cnotes - current
@@ -387,7 +387,7 @@ HECDSS_API int hec_dss_tsRetrieve(
           int noteLength = (int)strnlen_hec(src, remaining); // length of note i
 
           // copy note i into slot i of char* notesBuffer, maxing at noteSize
-          stringCopy(notesBuffer + i * noteSize, noteSize, src, noteLength);
+          stringCopy(cnotesBuffer + i * cnoteSize, cnoteSize, src, noteLength);
 
           notePosition +=
               noteLength + 1; // step past note i and null terminator
@@ -436,7 +436,7 @@ HECDSS_API int hec_dss_tsStoreRegular(
   zstructFree(tss);
   return status;
 }
-HECDSS_API int hec_dss_tsStoreIregular(
+HECDSS_API int hec_dss_tsStoreIrregular(
     dss_file *dss, const char *pathname, const char *startDateBase, int *times,
     const int timeGranularitySeconds, double *valueArray,
     const int valueArraySize, int *qualityArray, const int qualityArraySize,
