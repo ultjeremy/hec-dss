@@ -408,8 +408,12 @@ HECDSS_API int hec_dss_tsStoreRegular(dss_file* dss, const char* pathname,
     tss = zstructTsNewRegDoubles(pathname, valueArray, valueArraySize, startDate, startTime, units, type);
   }
 
-  if (qualityArraySize > 0 && qualityArraySize == valueArraySize) // quality should be set regardless of float or double
-      tss->quality = qualityArray;
+  if (qualityArraySize > 0 && qualityArraySize % valueArraySize == 0) {
+    // quality is optional; require the total to be a whole multiple of the
+    // value count, since quality may have multiple columns per value
+    tss->quality = qualityArray;
+    tss->qualityElementSize = qualityArraySize / valueArraySize;
+  }
   tss->boolPattern = isTsPattern(pathname);
   tss->timeZoneName = mallocAndCopy(timeZoneName);
   tss->allocated[zSTRUCT_timeZoneName] = 1;
