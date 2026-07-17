@@ -421,7 +421,8 @@ HECDSS_API int hec_dss_tsStoreRegular(
                                  startDate, startTime, units, type);
   }
 
-  if (qualityArraySize > 0 && qualityArraySize % valueArraySize == 0) {
+  if (valueArraySize > 0 && qualityArraySize > 0 &&
+      qualityArraySize % valueArraySize == 0 && qualityArray != NULL) {
     // quality is optional; require the total to be a whole multiple of the
     // value count, since quality may have multiple columns per value
     tss->quality = qualityArray;
@@ -460,10 +461,12 @@ HECDSS_API int hec_dss_tsStoreIregular(
                                    timeGranularitySeconds, startDateBase, units,
                                    type);
   }
-  if (qualityArraySize > 0 && qualityArraySize == valueArraySize) {
-    // TO DO.. quality can be multi-dimensional (Is that used?)
+  if (valueArraySize > 0 && qualityArraySize > 0 &&
+      qualityArraySize % valueArraySize == 0 && qualityArray != NULL) {
+    // quality is optional; require the total to be a whole multiple of the
+    // value count, since quality may have multiple columns per value
     tss->quality = qualityArray;
-    tss->qualityArraySize = qualityArraySize;
+    tss->qualityElementSize = qualityArraySize / valueArraySize;
   }
 
   tss->boolPattern = isTsPattern(pathname);
