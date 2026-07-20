@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-HECDSS_API const char *hec_dss_api_version() { return "0.3.0"; }
+HECDSS_API const char *hec_dss_api_version() { return "0.4.0"; }
 
 #if defined(__GNUC__) || defined(__sun__)
 #define MIN(a, b)                                                              \
