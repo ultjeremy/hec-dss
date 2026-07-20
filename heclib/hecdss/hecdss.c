@@ -86,12 +86,12 @@ HECDSS_API int hec_dss_log_message(const char *message) {
 
 HECDSS_API int hec_dss_CONSTANT_MAX_PATH_SIZE() { return MAX_PATHNAME_SIZE; }
 
-char *hec_dss_pack_notes(const char *cnotesBuffer, int cnoteSize,
-                         int numberValues, int *lengthTotal) {
-  *lengthTotal = 0; // This is tss->cnotesLengthTotal
-
+// condenses the user buffer cnotes array (numberValues blocks of cnoteSize
+// bytes) to numberValues notes with a single '\0' separating them
+void hec_dss_pack_notes(zStructTimeSeries *tss, const char *cnotesBuffer,
+                        int cnoteSize, int numberValues) {
   if (cnotesBuffer == NULL || cnoteSize <= 0 || numberValues <= 0)
-    return NULL;
+    return;
 
   int totalCalculatedNotesLength = 0;
   // This first loop is to determine tss->cnotesLengthTotal, which is how much
@@ -101,7 +101,7 @@ char *hec_dss_pack_notes(const char *cnotesBuffer, int cnoteSize,
     // the i * cnoteSize allows the loop to jump to the front of each string and
     // calculate the length of each string individually
     totalCalculatedNotesLength +=
-        (int)strnlen_hec(cnotesBuffer + (size_t)i * cnoteSize, cnoteSize) + 1;
+        strnlen_hec(cnotesBuffer + (size_t)i * cnoteSize, cnoteSize) + 1;
   }
   // malloc exactly how many bytes we need to store the tss->cnotes array. This
   // is equivalent to tss->cnotesLengthTotal
@@ -110,22 +110,23 @@ char *hec_dss_pack_notes(const char *cnotesBuffer, int cnoteSize,
   // distinguish between different cnotes
   char *cnotes = (char *)malloc((size_t)totalCalculatedNotesLength);
   if (cnotes == NULL)
-    return NULL;
+    return;
 
   // current position within the stored packed array we are copying into
   int pos = 0;
   for (int i = 0; i < numberValues; i++) {
     // ptr to start of ith note
     const char *src = cnotesBuffer + (size_t)i * cnoteSize;
-    int len = (int)strnlen_hec(src, cnoteSize); // length of note i
+    int len = strnlen_hec(src, cnoteSize); // length of note i
     memcpy(cnotes + pos, src, len);
     pos += len;
     cnotes[pos++] = '\0'; // move to next note to write
   }
 
-  // save length of packed, stored array
-  *lengthTotal = totalCalculatedNotesLength;
-  return cnotes;
+  tss->cnotes = cnotes;
+  tss->cnotesLengthTotal = totalCalculatedNotesLength;
+  // indicate that we need to free this new malloc'd cnotes later
+  tss->allocated[zSTRUCT_TS_cnotes] = 1;
 }
 
 float *hec_dss_double_array_to_float(double *values, const int size) {
@@ -427,7 +428,7 @@ HECDSS_API int hec_dss_tsRetrieve(
 
         char *src =
             &tss->cnotes[notePosition]; // address of beginning of note i
-        int noteLength = (int)strnlen_hec(src, remaining); // length of note i
+        int noteLength = strnlen_hec(src, remaining); // length of note i
 
         // copy note i into slot i of cnotesBuffer, maxing at cnoteSize
         stringCopy(cnotesBuffer + i * cnoteSize, cnoteSize, src, noteLength);
@@ -471,15 +472,7 @@ HECDSS_API int hec_dss_tsStoreRegular(
     tss->qualityElementSize = qualityArraySize / valueArraySize;
   }
 
-  int cnotesLengthTotal = 0;
-  char *cnotes = hec_dss_pack_notes(cnotesBuffer, cnoteSize, valueArraySize,
-                                    &cnotesLengthTotal);
-  if (cnotes != NULL) {
-    tss->cnotes = cnotes;
-    tss->cnotesLengthTotal = cnotesLengthTotal;
-    // indicate that we need to free this new malloc'd cnotes later
-    tss->allocated[zSTRUCT_TS_cnotes] = 1;
-  }
+  hec_dss_pack_notes(tss, cnotesBuffer, cnoteSize, valueArraySize);
 
   tss->boolPattern = isTsPattern(pathname);
   tss->timeZoneName = mallocAndCopy(timeZoneName);
@@ -523,15 +516,7 @@ HECDSS_API int hec_dss_tsStoreIrregular(
     tss->qualityElementSize = qualityArraySize / valueArraySize;
   }
 
-  int cnotesLengthTotal = 0;
-  char *cnotes = hec_dss_pack_notes(cnotesBuffer, cnoteSize, valueArraySize,
-                                    &cnotesLengthTotal);
-  if (cnotes != NULL) {
-    tss->cnotes = cnotes;
-    tss->cnotesLengthTotal = cnotesLengthTotal;
-    // indicate that we need to free this new malloc'd cnotes later
-    tss->allocated[zSTRUCT_TS_cnotes] = 1;
-  }
+  hec_dss_pack_notes(tss, cnotesBuffer, cnoteSize, valueArraySize);
 
   tss->boolPattern = isTsPattern(pathname);
 
