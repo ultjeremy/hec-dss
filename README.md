@@ -61,6 +61,9 @@ zlib, math, quadmath, and gfortran for pydsstools to work in Ubuntu.
 ## To build and test heclib
 
 ### Linux 
+
+JAVA_HOME=/usr/lib/jvm/default-java
+
 ```
 git clone https://github.com/HydrologicEngineeringCenter/hec-dss.git
 cd hec-dss
