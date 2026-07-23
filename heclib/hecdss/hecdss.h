@@ -32,6 +32,10 @@ typedef struct dss_file dss_file;
 
 #define HEC_DSS_BUFFER_TOO_SMALL -17
 
+// longest single note (excluding its null terminator) accepted by the
+// time series store functions
+#define HEC_DSS_MAX_CNOTE_LENGTH 4096
+
 /// <summary>
 /// Logs a message using DSS.
 /// log to stdout, or to an opened log file.
@@ -283,9 +287,11 @@ HECDSS_API int hec_dss_tsRetrieve(
 /// <param name="valueArraySize">number of points</param>
 /// <param name="qualityArray">array of quality flags</param>
 /// <param name="qualityArraySize">number of quality values per point</param>
-/// <param name="cnotesBuffer">input/output: string buffer to hold all notes
-/// strings</param>
-/// <param name="cnoteSize">input: length of each note </param>
+/// <param name="cnotes">input: packed notes, one note per value, each note
+/// terminated by '\0' with no padding in between; pass NULL for no notes.
+/// Each note may be at most HEC_DSS_MAX_CNOTE_LENGTH characters</param>
+/// <param name="cnotesLengthTotal">input: total bytes in cnotes, counting
+/// every '\0' terminator</param>
 /// <param name="saveAsFloat">set to true to save disk space</param>
 /// <param name="units">units of data</param>
 /// <param name="type">type of data: PER-AVER, PER-CUM,INST-VAL,INST-CUM
@@ -310,8 +316,8 @@ HECDSS_API int hec_dss_tsRetrieve(
 HECDSS_API int hec_dss_tsStoreRegular(
     dss_file *dss, const char *pathname, const char *startDate,
     const char *startTime, double *valueArray, const int valueArraySize,
-    int *qualityArray, const int qualityArraySize, const char *cnotesBuffer,
-    const int cnoteSize, const int saveAsFloat, const char *units,
+    int *qualityArray, const int qualityArraySize, const char *cnotes,
+    const int cnotesLengthTotal, const int saveAsFloat, const char *units,
     const char *type, const char *timeZoneName, int storageFlag);
 
 /// <summary>
@@ -332,9 +338,11 @@ HECDSS_API int hec_dss_tsStoreRegular(
 /// an int.  This API only supports single int per quality.</param>
 /// <param name="qualityArraySize">lenght of quality array, should match
 /// valueArraySize</param>
-/// <param name="cnotesBuffer">input/output: string buffer to hold all notes
-/// strings</param>
-/// <param name="cnoteSize">input: length of each note </param>
+/// <param name="cnotes">input: packed notes, one note per value, each note
+/// terminated by '\0' with no padding in between; pass NULL for no notes.
+/// Each note may be at most HEC_DSS_MAX_CNOTE_LENGTH characters</param>
+/// <param name="cnotesLengthTotal">input: total bytes in cnotes, counting
+/// every '\0' terminator</param>
 /// <param name="saveAsFloat">when true saves to disk, with float(4-bytes)
 /// otherwise uses 8-bytes per value.</param>
 /// <param name="units">units such as 'cfs'</param>
@@ -353,7 +361,7 @@ HECDSS_API int hec_dss_tsStoreIrregular(
     dss_file *dss, const char *pathname, const char *startDateBase, int *times,
     const int timeGranularitySeconds, double *valueArray,
     const int valueArraySize, int *qualityArray, const int qualityArraySize,
-    const char *cnotesBuffer, const int cnoteSize, const int saveAsFloat,
+    const char *cnotes, const int cnotesLengthTotal, const int saveAsFloat,
     const char *units, const char *type, const char *timeZoneName,
     int storageFlag);
 
