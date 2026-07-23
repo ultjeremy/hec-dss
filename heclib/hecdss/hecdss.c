@@ -466,9 +466,14 @@ HECDSS_API int hec_dss_tsStoreRegular(
   }
 
   if (cnotes != NULL && cnotesLengthTotal > 0) {
-    tss->cnotes = mallocAndCopy(cnotes);
-    tss->allocated[zSTRUCT_TS_cnotes] = 1;
-    tss->cnotesLengthTotal = cnotesLengthTotal;
+    // can't mallocAndCopy because it stops at first null terminator
+    char *cnotesCopy = (char *)malloc((size_t)cnotesLengthTotal);
+    if (cnotesCopy != NULL) {
+      memcpy(cnotesCopy, cnotes, (size_t)cnotesLengthTotal);
+      tss->cnotes = cnotesCopy;
+      tss->allocated[zSTRUCT_TS_cnotes] = 1;
+      tss->cnotesLengthTotal = cnotesLengthTotal;
+    }
   }
 
   tss->boolPattern = isTsPattern(pathname);
@@ -521,9 +526,14 @@ HECDSS_API int hec_dss_tsStoreIrregular(
   }
 
   if (cnotes != NULL && cnotesLengthTotal > 0) {
-    tss->cnotes = mallocAndCopy(cnotes);
-    tss->allocated[zSTRUCT_TS_cnotes] = 1;
-    tss->cnotesLengthTotal = cnotesLengthTotal;
+    // can't mallocAndCopy because it stops at first null terminator
+    char *cnotesCopy = (char *)malloc((size_t)cnotesLengthTotal);
+    if (cnotesCopy != NULL) {
+      memcpy(cnotesCopy, cnotes, (size_t)cnotesLengthTotal);
+      tss->cnotes = cnotesCopy;
+      tss->allocated[zSTRUCT_TS_cnotes] = 1;
+      tss->cnotesLengthTotal = cnotesLengthTotal;
+    }
   }
 
   tss->boolPattern = isTsPattern(pathname);
