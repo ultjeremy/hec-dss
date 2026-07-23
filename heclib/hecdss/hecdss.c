@@ -466,9 +466,8 @@ HECDSS_API int hec_dss_tsStoreRegular(
   }
 
   if (cnotes != NULL && cnotesLengthTotal > 0) {
-    // caller owns the packed buffer and ztsStore only reads it, so the
-    // allocated flag stays unset and zstructFree won't free it
-    tss->cnotes = (char *)cnotes;
+    tss->cnotes = mallocAndCopy(cnotes);
+    tss->allocated[zSTRUCT_TS_cnotes] = 1;
     tss->cnotesLengthTotal = cnotesLengthTotal;
   }
 
@@ -522,9 +521,8 @@ HECDSS_API int hec_dss_tsStoreIrregular(
   }
 
   if (cnotes != NULL && cnotesLengthTotal > 0) {
-    // caller owns the packed buffer and ztsStore only reads it, so the
-    // allocated flag stays unset and zstructFree won't free it
-    tss->cnotes = (char *)cnotes;
+    tss->cnotes = mallocAndCopy(cnotes);
+    tss->allocated[zSTRUCT_TS_cnotes] = 1;
     tss->cnotesLengthTotal = cnotesLengthTotal;
   }
 
