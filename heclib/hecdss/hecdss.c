@@ -365,59 +365,62 @@ HECDSS_API int hec_dss_tsRetrieve(
 
   int status = ztsRetrieve(dss->ifltab, tss, NO_TRIM_INCL_TIME_ARR,
                            RETRIEVE_DOUBLES, RETRIEVE_QUAL_AND_NOTES);
-  if (status == 0) {
-    *julianBaseDate = tss->julianBaseDate;
-    *timeGranularitySeconds = tss->timeGranularitySeconds;
 
-    if (tss->units != NULL) {
-      stringCopy(units, unitsLength, tss->units, strlen(tss->units));
-    }
-    if (tss->type != NULL) {
-      stringCopy(type, typeLength, tss->type, strlen(tss->type));
-    }
-    if (tss->timeZoneName != NULL) {
-      stringCopy(timeZoneName, timeZoneNameLength, tss->timeZoneName,
-                 strlen(tss->timeZoneName));
-    }
+  if (status != 0) {
+    zstructFree(tss);
+    return status;
+  }
 
-    int size = MIN(tss->numberValues, arraySize);
-    size = MAX(0, size);
-    *numberValuesRead = size;
-    // Adding checks to ensure that the retriever and source are on the same
-    // page for quality array dimensions
-    int boolCopyQuality =
-        (qualityWidth > 0 && quality != NULL && tss->quality != NULL &&
-         qualityWidth == tss->qualityElementSize);
+  *julianBaseDate = tss->julianBaseDate;
+  *timeGranularitySeconds = tss->timeGranularitySeconds;
+
+  if (tss->units != NULL) {
+    stringCopy(units, unitsLength, tss->units, strlen(tss->units));
+  }
+  if (tss->type != NULL) {
+    stringCopy(type, typeLength, tss->type, strlen(tss->type));
+  }
+  if (tss->timeZoneName != NULL) {
+    stringCopy(timeZoneName, timeZoneNameLength, tss->timeZoneName,
+               strlen(tss->timeZoneName));
+  }
+
+  int size = MIN(tss->numberValues, arraySize);
+  size = MAX(0, size);
+  *numberValuesRead = size;
+  // Adding checks to ensure that the retriever and source are on the same
+  // page for quality array dimensions
+  int boolCopyQuality =
+      (qualityWidth > 0 && quality != NULL && tss->quality != NULL &&
+       qualityWidth == tss->qualityElementSize);
+  for (int i = 0; i < size; i++) {
+    if (tss->times) {
+      timeArray[i] = tss->times[i];
+    }
+    valueArray[i] = tss->doubleValues[i];
+    if (boolCopyQuality) {
+      for (int j = 0; j < qualityWidth; j++) {
+        quality[j + (i * qualityWidth)] =
+            tss->quality[j + (i * tss->qualityElementSize)];
+      }
+    }
+  }
+
+  if (cnoteSize > 0 && tss->cnotes != NULL && cnotesBuffer != NULL) {
+    int notePosition = 0;
     for (int i = 0; i < size; i++) {
-      if (tss->times) {
-        timeArray[i] = tss->times[i];
-      }
-      valueArray[i] = tss->doubleValues[i];
-      if (boolCopyQuality) {
-        for (int j = 0; j < qualityWidth; j++) {
-          quality[j + (i * qualityWidth)] =
-              tss->quality[j + (i * tss->qualityElementSize)];
-        }
-      }
-    }
+      // Total bytes in tss->cnotes - current position in cnotes
+      int remaining = tss->cnotesLengthTotal - notePosition;
+      if (remaining <= 0)
+        break; // No more notes in buffer
 
-    if (cnoteSize > 0 && tss->cnotes != NULL && cnotesBuffer != NULL) {
-      int notePosition = 0;
-      for (int i = 0; i < size; i++) {
-        // Total bytes in tss->cnotes - current position in cnotes
-        int remaining = tss->cnotesLengthTotal - notePosition;
-        if (remaining <= 0)
-          break; // No more notes in buffer
+      char *src = &tss->cnotes[notePosition]; // address of beginning of note i
+      int noteLength = strnlen_hec(src, remaining); // length of note i
 
-        char *src =
-            &tss->cnotes[notePosition]; // address of beginning of note i
-        int noteLength = strnlen_hec(src, remaining); // length of note i
+      // copy note i into slot i of cnotesBuffer, maxing at cnoteSize
+      stringCopy(cnotesBuffer + i * cnoteSize, cnoteSize, src, noteLength);
 
-        // copy note i into slot i of cnotesBuffer, maxing at cnoteSize
-        stringCopy(cnotesBuffer + i * cnoteSize, cnoteSize, src, noteLength);
-
-        notePosition += noteLength + 1; // step past note i and null terminator
-      }
+      notePosition += noteLength + 1; // step past note i and null terminator
     }
   }
 
