@@ -17,6 +17,12 @@
 int zopenExtended(long long *ifltab, const char *dssFilename, int fileVersion,
 			 int access, int maxExpectedPathnames, int hashSize, int binSize)
 {
+
+	if (!dssFilename || strlen(dssFilename) <=0 ) {
+		return zerrorProcessing(ifltab, DSS_FUNCTION_zopen_ID, zdssErrorCodes.NULL_FILENAME,
+			0, 0, zdssErrorSeverity.INVALID_ARGUMENT, "", "");
+	}
+	
 	int version;
 
 	version = zgetFileVersion(dssFilename);

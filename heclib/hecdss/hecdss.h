@@ -93,7 +93,7 @@ HECDSS_API int hec_dss_open(const char *filename, dss_file **dss);
 /// (identical to hec_dss_open), non-zero to open read-only</param>
 /// <returns>zero if successful</returns>
 HECDSS_API int hec_dss_open_ex(const char *filename, dss_file **dss,
-                               int readonly);
+                               int access);
 
 /// <summary>
 /// use hec_dss_close to close the connection to a DSS file.
