@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-HECDSS_API const char *hec_dss_api_version() { return "0.4.0"; }
+HECDSS_API const char *hec_dss_api_version() { return "0.5.0"; }
 
 #if defined(__GNUC__) || defined(__sun__)
 #define MIN(a, b)                                                              \
@@ -166,11 +166,18 @@ void hec_dss_array_copy_int(int *destination, const long destinationSize,
   }
 }
 HECDSS_API int hec_dss_open(const char *filename, dss_file **dss) {
+  return hec_dss_open_ex(filename, dss, 0);
+}
+
+HECDSS_API int hec_dss_open_ex(const char *filename, dss_file **dss,
+                               int readonly) {
   dss_file *f = (dss_file *)malloc(sizeof(dss_file));
   if (f == NULL)
     return -1;
 
-  int status = hec_dss_zopen(f->ifltab, filename);
+  int access = readonly ? READ_ACCESS : GENERAL_ACCESS;
+
+  int status = zopenExtended(f->ifltab, filename, 0, access, 0, 0, 0);
   if (status != 0) {
     free(f);
     return status;
