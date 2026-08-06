@@ -82,14 +82,13 @@ HECDSS_API int hec_dss_CONSTANT_MAX_PATH_SIZE();
 HECDSS_API int hec_dss_open(const char *filename, dss_file **dss);
 
 /// <summary>
-/// use hec_dss_open_ex to connect to a DSS file, choosing read/write or
-/// read-only access.
+/// use hec_dss_open_ex to connect to a DSS file, access.
 ///
 /// </summary>
 /// <param name="filename">input: filename to open; also created if readonly is
 /// zero and the file does not exist</param>
 /// <param name="dss">output: pointer to dss_file</param>
-/// <param name="readonly">input: zero to open with read/write access
+/// <param name="access">input: zero to open with read/write access
 /// (identical to hec_dss_open), non-zero to open read-only</param>
 /// <returns>zero if successful</returns>
 HECDSS_API int hec_dss_open_ex(const char *filename, dss_file **dss,
