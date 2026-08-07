@@ -186,6 +186,7 @@ HECDSS_API int hec_dss_open_ex(const char *filename, dss_file **dss,
     return -1;
   // readonly can only be from 0 to 4
   if (access < 0 || access > 4) {
+    free(f);
     return -1;
   }
 
